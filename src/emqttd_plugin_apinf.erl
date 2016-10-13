@@ -30,16 +30,8 @@
 
 -export([on_message_publish/2, on_message_delivered/3, on_message_acked/3]).
 
--spec get_timestamp() -> integer().
-
-get_timestamp() ->
-  {Mega, Sec, Micro} = os:timestamp(),
-  (Mega*1000000 + Sec)*1000 + round(Micro/1000).
-
-
-tuple_to_string(Bucket) ->
-    lists:flatten(io_lib:format("~p", [Bucket])).
-
+tuple_to_string(Log) ->
+    lists:flatten(io_lib:format("~p", [Log])).
 
 %% Called when the plugin application start
 load(Env) ->
@@ -53,14 +45,15 @@ load(Env) ->
     emqttd:hook('message.acked', fun ?MODULE:on_message_acked/3, [Env]).
 
 on_client_connected(ConnAck, Client = #mqtt_client{client_id = ClientId}, _Env) ->
-    % type, clientId
-    Bucket = { connected, ClientId, get_timestamp() },
-    io:format(" > ~s~n", [tuple_to_string(Bucket)]),
+    Log = [{type, connected}, {timestamp, erlang:timestamp()}, {client_id, ClientId}],
+    io:format(" > ~s~n", [tuple_to_string(Log)]),
     % io:format("client ~s connected, connack: ~w~n", [ClientId, ConnAck]),
     {ok, Client}.
 
 on_client_disconnected(Reason, ClientId, _Env) ->
-    io:format("client ~s disconnected, reason: ~w~n", [ClientId, Reason]),
+    Log = [{type, disconnected}, {timestamp, erlang:timestamp()}, {client_id, ClientId}, {reason, Reason}],
+    io:format(" > ~s~n", [tuple_to_string(Log)]),
+    % io:format("client ~s disconnected, reason: ~w~n", [ClientId, Reason]),
     % Selector = emqttd_plugin_mongo:replvar(<<"username">>),
     % UserMap = emqttd_plugin_mongo:query(<<"mqtt_user">>, Selector),
     % io:format(UserMap),
@@ -68,15 +61,19 @@ on_client_disconnected(Reason, ClientId, _Env) ->
 
 %% should retain TopicTable
 on_client_subscribe(ClientId, TopicTable, _Env) ->
-    io:format("client ~s will subscribe ~p~n", [ClientId, TopicTable]),
+    % io:format("client ~s will subscribe ~p~n", [ClientId, TopicTable]),
     {ok, TopicTable}.
 
 on_client_subscribe_after(ClientId, TopicTable, _Env) ->
-    io:format("client ~s subscribed ~p~n", [ClientId, TopicTable]),
+    Log = [{type, subscribe}, {timestamp, erlang:timestamp()}, {client_id, ClientId}, {topics, TopicTable}],
+    io:format(" > ~s~n", [tuple_to_string(Log)]),
+    % io:format("client ~s subscribed ~p~n", [ClientId, TopicTable]),
     {ok, TopicTable}.
 
 on_client_unsubscribe(ClientId, Topics, _Env) ->
-    io:format("client ~s unsubscribe ~p~n", [ClientId, Topics]),
+    Log = [{type, unsubscribe}, {timestamp, erlang:timestamp()}, {client_id, ClientId}, {topics, Topics}],
+    io:format(" > ~s~n", [tuple_to_string(Log)]),
+    % io:format("client ~s unsubscribe ~p~n", [ClientId, Topics]),
     {ok, Topics}.
 
 %% transform message and return
@@ -84,11 +81,16 @@ on_message_publish(Message = #mqtt_message{topic = <<"$SYS/", _/binary>>}, _Env)
     {ok, Message};
 
 on_message_publish(Message, _Env) ->
-    io:format("publish ~s~n", [emqttd_message:format(Message)]),
+    Log = [{timestamp, erlang:timestamp()}, {type, message_publish}, {message, Message}],
+    io:format(" > ~s~n", [tuple_to_string(Log)]),
+    % io:format("publish ~s~n", [emqttd_message:format(Message)]),
     {ok, Message}.
 
 on_message_delivered(ClientId, Message, _Env) ->
-    io:format("delivered to client ~s: ~s~n", [ClientId, emqttd_message:format(Message)]),
+    % timestamp, type, clientId
+    Log = [{type, message_delivered}, {timestamp, erlang:timestamp()}, {client_id, ClientId}],
+    io:format(" > ~s~n", [tuple_to_string(Log)]),
+    % io:format("delivered to client ~s: ~s~n", [ClientId, emqttd_message:format(Message)]),
     {ok, Message}.
 
 on_message_acked(ClientId, Message, _Env) ->
