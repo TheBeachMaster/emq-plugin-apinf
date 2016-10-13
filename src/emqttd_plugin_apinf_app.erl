@@ -23,7 +23,6 @@
 -export([start/2, stop/1]).
 
 start(_StartType, _StartArgs) ->
-    gen_conf:init(emqttd_plugin_apinf),
     {ok, Sup} = emqttd_plugin_apinf_sup:start_link(),
     ok = emqttd_access_control:register_mod(auth, emqttd_auth_demo, []),
     ok = emqttd_access_control:register_mod(acl, emqttd_acl_demo, []),

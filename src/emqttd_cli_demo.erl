@@ -16,7 +16,7 @@
 
 -module(emqttd_cli_demo).
 
--include_lib("emqttd/include/emqttd_cli.hrl").
+-include("../../../include/emqttd_cli.hrl").
 
 -export([cmd/1]).
 

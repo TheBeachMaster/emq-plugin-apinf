@@ -14,65 +14,70 @@
 %% limitations under the License.
 %%--------------------------------------------------------------------
 
+%% @doc emqttd plugin template
 -module(emqttd_plugin_apinf).
 
--include_lib("emqttd/include/emqttd.hrl").
+-include("../../../include/emqttd.hrl").
+
+-include("../../emqttd_plugin_mongo/include/emqttd_plugin_mongo.hrl").
 
 -export([load/1, unload/0]).
 
 %% Hooks functions
-
 -export([on_client_connected/3, on_client_disconnected/3]).
 
--export([on_client_subscribe/4, on_client_unsubscribe/4]).
+-export([on_client_subscribe/3, on_client_subscribe_after/3, on_client_unsubscribe/3]).
 
--export([on_session_created/3, on_session_subscribed/4, on_session_unsubscribed/4, on_session_terminated/4]).
+-export([on_message_publish/2, on_message_delivered/3, on_message_acked/3]).
 
--export([on_message_publish/2, on_message_delivered/4, on_message_acked/4]).
+-spec get_timestamp() -> integer().
+
+get_timestamp() ->
+  {Mega, Sec, Micro} = os:timestamp(),
+  (Mega*1000000 + Sec)*1000 + round(Micro/1000).
+
+
+tuple_to_string(Bucket) ->
+    lists:flatten(io_lib:format("~p", [Bucket])).
+
 
 %% Called when the plugin application start
 load(Env) ->
     emqttd:hook('client.connected', fun ?MODULE:on_client_connected/3, [Env]),
     emqttd:hook('client.disconnected', fun ?MODULE:on_client_disconnected/3, [Env]),
-    emqttd:hook('client.subscribe', fun ?MODULE:on_client_subscribe/4, [Env]),
-    emqttd:hook('client.unsubscribe', fun ?MODULE:on_client_unsubscribe/4, [Env]),
-    emqttd:hook('session.created', fun ?MODULE:on_session_created/3, [Env]),
-    emqttd:hook('session.subscribed', fun ?MODULE:on_session_subscribed/4, [Env]),
-    emqttd:hook('session.unsubscribed', fun ?MODULE:on_session_unsubscribed/4, [Env]),
-    emqttd:hook('session.terminated', fun ?MODULE:on_session_terminated/4, [Env]),
+    emqttd:hook('client.subscribe', fun ?MODULE:on_client_subscribe/3, [Env]),
+    emqttd:hook('client.subscribe.after', fun ?MODULE:on_client_subscribe_after/3, [Env]),
+    emqttd:hook('client.unsubscribe', fun ?MODULE:on_client_unsubscribe/3, [Env]),
     emqttd:hook('message.publish', fun ?MODULE:on_message_publish/2, [Env]),
-    emqttd:hook('message.delivered', fun ?MODULE:on_message_delivered/4, [Env]),
-    emqttd:hook('message.acked', fun ?MODULE:on_message_acked/4, [Env]).
+    emqttd:hook('message.delivered', fun ?MODULE:on_message_delivered/3, [Env]),
+    emqttd:hook('message.acked', fun ?MODULE:on_message_acked/3, [Env]).
 
 on_client_connected(ConnAck, Client = #mqtt_client{client_id = ClientId}, _Env) ->
-    io:format("client ~s connected, connack: ~w~n", [ClientId, ConnAck]),
+    % type, clientId
+    Bucket = { connected, ClientId, get_timestamp() },
+    io:format(" > ~s~n", [tuple_to_string(Bucket)]),
+    % io:format("client ~s connected, connack: ~w~n", [ClientId, ConnAck]),
     {ok, Client}.
 
-on_client_disconnected(Reason, _Client = #mqtt_client{client_id = ClientId}, _Env) ->
+on_client_disconnected(Reason, ClientId, _Env) ->
     io:format("client ~s disconnected, reason: ~w~n", [ClientId, Reason]),
+    % Selector = emqttd_plugin_mongo:replvar(<<"username">>),
+    % UserMap = emqttd_plugin_mongo:query(<<"mqtt_user">>, Selector),
+    % io:format(UserMap),
     ok.
 
-on_client_subscribe(ClientId, Username, TopicTable, _Env) ->
-    io:format("client(~s/~s) will subscribe: ~p~n", [Username, ClientId, TopicTable]),
+%% should retain TopicTable
+on_client_subscribe(ClientId, TopicTable, _Env) ->
+    io:format("client ~s will subscribe ~p~n", [ClientId, TopicTable]),
     {ok, TopicTable}.
 
-on_client_unsubscribe(ClientId, Username, TopicTable, _Env) ->
-    io:format("client(~s/~s) unsubscribe ~p~n", [ClientId, Username, TopicTable]),
+on_client_subscribe_after(ClientId, TopicTable, _Env) ->
+    io:format("client ~s subscribed ~p~n", [ClientId, TopicTable]),
     {ok, TopicTable}.
 
-on_session_created(ClientId, Username, _Env) ->
-    io:format("session(~s/~s) created.", [ClientId, Username]).
-
-on_session_subscribed(ClientId, Username, {Topic, Opts}, _Env) ->
-    io:format("session(~s/~s) subscribed: ~p~n", [Username, ClientId, {Topic, Opts}]),
-    {ok, {Topic, Opts}}.
-
-on_session_unsubscribed(ClientId, Username, {Topic, Opts}, _Env) ->
-    io:format("session(~s/~s) unsubscribed: ~p~n", [Username, ClientId, {Topic, Opts}]),
-    ok.
-
-on_session_terminated(ClientId, Username, Reason, _Env) ->
-    io:format("session(~s/~s) terminated: ~p.", [ClientId, Username, Reason]).
+on_client_unsubscribe(ClientId, Topics, _Env) ->
+    io:format("client ~s unsubscribe ~p~n", [ClientId, Topics]),
+    {ok, Topics}.
 
 %% transform message and return
 on_message_publish(Message = #mqtt_message{topic = <<"$SYS/", _/binary>>}, _Env) ->
@@ -82,22 +87,21 @@ on_message_publish(Message, _Env) ->
     io:format("publish ~s~n", [emqttd_message:format(Message)]),
     {ok, Message}.
 
-on_message_delivered(ClientId, Username, Message, _Env) ->
-    io:format("delivered to client(~s/~s): ~s~n", [Username, ClientId, emqttd_message:format(Message)]),
+on_message_delivered(ClientId, Message, _Env) ->
+    io:format("delivered to client ~s: ~s~n", [ClientId, emqttd_message:format(Message)]),
     {ok, Message}.
 
-on_message_acked(ClientId, Username, Message, _Env) ->
-    io:format("client(~s/~s) acked: ~s~n", [Username, ClientId, emqttd_message:format(Message)]),
+on_message_acked(ClientId, Message, _Env) ->
+    io:format("client ~s acked: ~s~n", [ClientId, emqttd_message:format(Message)]),
     {ok, Message}.
 
 %% Called when the plugin application stop
 unload() ->
     emqttd:unhook('client.connected', fun ?MODULE:on_client_connected/3),
     emqttd:unhook('client.disconnected', fun ?MODULE:on_client_disconnected/3),
-    emqttd:unhook('client.subscribe', fun ?MODULE:on_client_subscribe/4),
-    emqttd:unhook('client.unsubscribe', fun ?MODULE:on_client_unsubscribe/4),
-    emqttd:unhook('session.subscribed', fun ?MODULE:on_session_subscribed/4),
-    emqttd:unhook('session.unsubscribed', fun ?MODULE:on_session_unsubscribed/4),
+    emqttd:unhook('client.subscribe', fun ?MODULE:on_client_subscribe/3),
+    emqttd:unhook('client.subscribe.after', fun ?MODULE:on_client_subscribe_after/3),
+    emqttd:unhook('client.unsubscribe', fun ?MODULE:on_client_unsubscribe/3),
     emqttd:unhook('message.publish', fun ?MODULE:on_message_publish/2),
-    emqttd:unhook('message.delivered', fun ?MODULE:on_message_delivered/4),
-    emqttd:unhook('message.acked', fun ?MODULE:on_message_acked/4).
+    emqttd:unhook('message.acked', fun ?MODULE:on_message_acked/3),
+    emqttd:unhook('message.delivered', fun ?MODULE:on_message_delivered/3).
