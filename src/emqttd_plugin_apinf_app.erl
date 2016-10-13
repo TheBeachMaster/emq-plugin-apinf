@@ -15,7 +15,7 @@
 %%--------------------------------------------------------------------
 
 %% @doc emqttd plugin template application.
--module(emqttd_plugin_template_app).
+-module(emqttd_plugin_apinf_app).
 
 -behaviour(application).
 
@@ -23,12 +23,12 @@
 -export([start/2, stop/1]).
 
 start(_StartType, _StartArgs) ->
-    gen_conf:init(emqttd_plugin_template),
-    {ok, Sup} = emqttd_plugin_template_sup:start_link(),
+    gen_conf:init(emqttd_plugin_apinf),
+    {ok, Sup} = emqttd_plugin_apinf_sup:start_link(),
     ok = emqttd_access_control:register_mod(auth, emqttd_auth_demo, []),
     ok = emqttd_access_control:register_mod(acl, emqttd_acl_demo, []),
-    emqttd_plugin_template:load(application:get_all_env()),
+    emqttd_plugin_apinf:load(application:get_all_env()),
     {ok, Sup}.
 
 stop(_State) ->
-    emqttd_plugin_template:unload().
+    emqttd_plugin_apinf:unload().

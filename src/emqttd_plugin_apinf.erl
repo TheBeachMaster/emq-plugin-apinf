@@ -14,7 +14,7 @@
 %% limitations under the License.
 %%--------------------------------------------------------------------
 
--module(emqttd_plugin_template).
+-module(emqttd_plugin_apinf).
 
 -include_lib("emqttd/include/emqttd.hrl").
 
@@ -55,7 +55,7 @@ on_client_disconnected(Reason, _Client = #mqtt_client{client_id = ClientId}, _En
 on_client_subscribe(ClientId, Username, TopicTable, _Env) ->
     io:format("client(~s/~s) will subscribe: ~p~n", [Username, ClientId, TopicTable]),
     {ok, TopicTable}.
-    
+
 on_client_unsubscribe(ClientId, Username, TopicTable, _Env) ->
     io:format("client(~s/~s) unsubscribe ~p~n", [ClientId, Username, TopicTable]),
     {ok, TopicTable}.
@@ -101,4 +101,3 @@ unload() ->
     emqttd:unhook('message.publish', fun ?MODULE:on_message_publish/2),
     emqttd:unhook('message.delivered', fun ?MODULE:on_message_delivered/4),
     emqttd:unhook('message.acked', fun ?MODULE:on_message_acked/4).
-

@@ -15,7 +15,7 @@
 %%--------------------------------------------------------------------
 
 %% @doc emqttd plugin template supervisor.
--module(emqttd_plugin_template_sup).
+-module(emqttd_plugin_apinf_sup).
 
 -behaviour(supervisor).
 
@@ -30,4 +30,3 @@ start_link() ->
 
 init([]) ->
     {ok, { {one_for_one, 5, 10}, []} }.
-
