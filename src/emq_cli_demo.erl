@@ -14,9 +14,9 @@
 %% limitations under the License.
 %%--------------------------------------------------------------------
 
--module(emqttd_cli_demo).
+-module(emq_cli_demo).
 
--include("../../../include/emqttd_cli.hrl").
+-include_lib("emqttd/include/emqttd_cli.hrl").
 
 -export([cmd/1]).
 

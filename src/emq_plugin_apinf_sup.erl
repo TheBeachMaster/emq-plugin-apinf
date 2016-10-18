@@ -14,8 +14,7 @@
 %% limitations under the License.
 %%--------------------------------------------------------------------
 
-%% @doc emqttd plugin template supervisor.
--module(emqttd_plugin_apinf_sup).
+-module(emq_plugin_apinf_sup).
 
 -behaviour(supervisor).
 
