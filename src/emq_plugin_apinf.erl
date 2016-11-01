@@ -42,7 +42,7 @@ tuple_to_string(Log) ->
 
 write_to_es(Log) ->
   esio:start(),
-  {ok, Sock} = esio:socket("http://127.0.0.1:9200"),
+  {ok, Sock} = esio:socket("http://172.20.10.4:9200"),
   esio:put(Sock, "urn:es:mqt:analytics:1", #{type => Log, tags => [green]}),
   io:format("writing to mongod.."),
   esio:close(Sock).
