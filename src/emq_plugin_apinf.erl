@@ -34,11 +34,11 @@
 tuple_to_string(Log) ->
   lists:flatten(io_lib:format("~p", [Log])).
 
-write_to_mongo(Log) ->
-  Database = <<"mqtt">>,
-  Collection = <<"analytics">>,
-  {ok, Connection} = mc_worker_api:connect([{database, Database}]),
-  mc_worker_api:insert(Connection, Collection, Log).
+% write_to_mongo(Log) ->
+%   Database = <<"mqtt">>,
+%   Collection = <<"analytics">>,
+%   {ok, Connection} = mc_worker_api:connect([{database, Database}]),
+%   mc_worker_api:insert(Connection, Collection, Log).
 
 write_to_es(Log) ->
   esio:start(),
