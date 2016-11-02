@@ -31,8 +31,8 @@
 -export([on_message_publish/2, on_message_delivered/4, on_message_acked/4]).
 
 % Custom functions
-tuple_to_string(Log) ->
-  lists:flatten(io_lib:format("~p", [Log])).
+% tuple_to_string(Log) ->
+%   lists:flatten(io_lib:format("~p", [Log])).
 
 % write_to_mongo(Log) ->
 %   Database = <<"mqtt">>,
@@ -40,12 +40,12 @@ tuple_to_string(Log) ->
 %   {ok, Connection} = mc_worker_api:connect([{database, Database}]),
 %   mc_worker_api:insert(Connection, Collection, Log).
 
-write_to_es(Log) ->
-  esio:start(),
-  {ok, Sock} = esio:socket("http://172.20.10.4:9200"),
-  esio:put(Sock, "urn:es:mqt:analytics:1", #{type => Log, tags => [green]}),
-  io:format("writing to mongod.."),
-  esio:close(Sock).
+% write_to_es(Log) ->
+%   esio:start(),
+%   {ok, Sock} = esio:socket("http://172.20.10.4:9200"),
+%   esio:put(Sock, "urn:es:mqt:analytics:1", #{type => Log, tags => [green]}),
+%   io:format("writing to mongod.."),
+%   esio:close(Sock).
 % --- Custom functions
 
 %% Called when the plugin application start
@@ -69,7 +69,11 @@ on_client_connected(ConnAck, Client = #mqtt_client{client_id = ClientId}, _Env) 
     %   <<"date">>, erlang:timestamp(),
     %   <<"client_id">>, ClientId
     % },
-    write_to_es(<<"on_client_connected">>),
+    io:format("writing to es.."),
+    esio:start(),
+    {ok, Sock} = esio:socket("http://172.16.1.187:9200/"),
+    esio:put(Sock, "urn:es:mqt:analytics:1", #{type => <<"on_client_connected">>, tags => [green]}),
+    esio:close(Sock),
     {ok, Client}.
 
 on_client_disconnected(Reason, _Client = #mqtt_client{client_id = ClientId}, _Env) ->
