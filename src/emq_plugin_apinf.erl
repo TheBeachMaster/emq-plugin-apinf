@@ -40,12 +40,11 @@
 %   {ok, Connection} = mc_worker_api:connect([{database, Database}]),
 %   mc_worker_api:insert(Connection, Collection, Log).
 
-% write_to_es(Log) ->
-%   esio:start(),
-%   {ok, Sock} = esio:socket("http://172.20.10.4:9200"),
-%   esio:put(Sock, "urn:es:mqt:analytics:1", #{type => Log, tags => [green]}),
-%   io:format("writing to mongod.."),
-%   esio:close(Sock).
+write_to_es(Log) ->
+  esio:start(),
+  {ok, Sock} = esio:socket("http://172.20.10.4:9200/"),
+  esio:put(Sock, "urn:es:mqt:analytics:1", Log),
+  esio:close(Sock).
 % --- Custom functions
 
 %% Called when the plugin application start
@@ -63,119 +62,107 @@ load(Env) ->
     emqttd:hook('message.acked', fun ?MODULE:on_message_acked/4, [Env]).
 
 on_client_connected(ConnAck, Client = #mqtt_client{client_id = ClientId}, _Env) ->
-    io:format("client ~s connected, connack: ~w~n", [ClientId, ConnAck]),
-    % Log = {
-    %   <<"type">>, <<"on_client_connected">>,
-    %   <<"date">>, erlang:timestamp(),
-    %   <<"client_id">>, ClientId
-    % },
-    io:format("writing to es.."),
-    esio:start(),
-    {ok, Sock} = esio:socket("http://172.16.1.187:9200/"),
-    esio:put(Sock, "urn:es:mqt:analytics:1", #{type => <<"on_client_connected">>, tags => [green]}),
-    esio:close(Sock),
+    % io:format("client ~s connected, connack: ~w~n", [ClientId, ConnAck]),
+    Log = #{
+      type => <<"on_client_connected">>,
+      date => erlang:localtime()
+    },
+    % write_to_es(Log),
     {ok, Client}.
 
 on_client_disconnected(Reason, _Client = #mqtt_client{client_id = ClientId}, _Env) ->
-    io:format("client ~s disconnected, reason: ~w~n", [ClientId, Reason]),
-    % Log = {
-    %   <<"type">>, <<"on_client_disconnected">>,
-    %   <<"date">>, erlang:timestamp(),
-    %   <<"client_id">>, ClientId
-    % },
-    % write_to_mongo(Log),
+    % io:format("client ~s disconnected, reason: ~w~n", [ClientId, Reason]),
+    Log = #{
+      type => <<"on_client_disconnected">>,
+      date => erlang:localtime()
+    },
+    % write_to_es(Log),
     ok.
 
 on_client_subscribe(ClientId, Username, TopicTable, _Env) ->
-    io:format("client(~s/~s) will subscribe: ~p~n", [Username, ClientId, TopicTable]),
-    % Log = {
-    %   <<"type">>, <<"on_client_subscribe">>,
-    %   <<"date">>, erlang:timestamp(),
-    %   <<"client_id">>, ClientId,
-    %   <<"username">>, Username,
-    %   <<"topic_table">>, TopicTable
-    % },
-    % write_to_mongo(Log),
+    % io:format("client(~s/~s) will subscribe: ~p~n", [Username, ClientId, TopicTable]),
+    Log = #{
+      type => <<"on_client_subscribe">>,
+      date => erlang:localtime(),
+      username => Username,
+      topic_table => TopicTable
+    },
+    write_to_es(Log),
     {ok, TopicTable}.
 
 on_client_unsubscribe(ClientId, Username, TopicTable, _Env) ->
-    io:format("client(~s/~s) unsubscribe ~p~n", [ClientId, Username, TopicTable]),
-    % Log = {
-    %   <<"type">>, <<"on_client_unsubscribe">>,
-    %   <<"date">>, erlang:timestamp(),
-    %   <<"client_id">>, ClientId,
-    %   <<"username">>, Username,
-    %   <<"topic_table">>, TopicTable
-    % },
-    % write_to_mongo(Log),
+    % io:format("client(~s/~s) unsubscribe ~p~n", [ClientId, Username, TopicTable]),
+    Log = #{
+      type => <<"on_client_unsubscribe">>,
+      date => erlang:localtime(),
+      username => Username,
+      topic_table => TopicTable
+    },
+    % write_to_es(Log),
     {ok, TopicTable}.
 
 on_session_created(ClientId, Username, _Env) ->
-    % Log = {
-    %   <<"type">>, <<"on_session_created">>,
-    %   <<"date">>, erlang:timestamp(),
-    %   <<"client_id">>, ClientId,
-    %   <<"username">>, Username
-    % },
-    % write_to_mongo(Log),
+    Log = #{
+      type => <<"on_session_created">>,
+      date => erlang:localtime(),
+      username => Username
+    },
+    % write_to_es(Log),
     io:format("session(~s/~s) created.", [ClientId, Username]).
 
 on_session_subscribed(ClientId, Username, {Topic, Opts}, _Env) ->
-    io:format("session(~s/~s) subscribed: ~p~n", [Username, ClientId, {Topic, Opts}]),
-    % Log = {
-    %   <<"type">>, <<"on_session_subscribed">>,
-    %   <<"date">>, erlang:timestamp(),
-    %   <<"client_id">>, ClientId,
-    %   <<"username">>, Username,
-    %   <<"topic_and_opts">>, {
-    %     <<"topic">>, Topic,
-    %     <<"opts">>, Opts
-    %   }
-    % },
-    % write_to_mongo(Log),
+    % io:format("session(~s/~s) subscribed: ~p~n", [Username, ClientId, {Topic, Opts}]),
+    Log = #{
+      type => <<"on_session_subscribed">>,
+      date => erlang:localtime(),
+      username => Username,
+      topic_and_opts => #{
+        topic => Topic,
+        opts => Opts
+      }
+    },
+    write_to_es(Log),
     {ok, {Topic, Opts}}.
 
 on_session_unsubscribed(ClientId, Username, {Topic, Opts}, _Env) ->
-    io:format("session(~s/~s) unsubscribed: ~p~n", [Username, ClientId, {Topic, Opts}]),
-    % Log = {
-    %   <<"type">>, <<"on_session_unsubscribed">>,
-    %   <<"date">>, erlang:timestamp(),
-    %   <<"client_id">>, ClientId,
-    %   <<"username">>, Username,
-    %   <<"topic_and_opts">>, {
-    %     <<"topic">>, Topic,
-    %     <<"opts">>, Opts
-    %   }
-    % },
-    % write_to_mongo(Log),
+    % io:format("session(~s/~s) unsubscribed: ~p~n", [Username, ClientId, {Topic, Opts}]),
+    Log = #{
+      type => <<"on_session_unsubscribed">>,
+      date => erlang:localtime(),
+      username => Username,
+      topic_and_opts => #{
+        topic => Topic,
+        opts => Opts
+      }
+    },
+    % write_to_es(Log),
     ok.
 
 on_session_terminated(ClientId, Username, Reason, _Env) ->
-    % Log = {
-    %   <<"type">>, <<"on_session_terminated">>,
-    %   <<"date">>, erlang:timestamp(),
-    %   <<"client_id">>, ClientId,
-    %   <<"username">>, Username,
-    %   <<"reason">>, Reason
-    % },
-    % write_to_mongo(Log),
-    io:format("session(~s/~s) terminated: ~p.", [ClientId, Username, Reason]).
+    % io:format("session(~s/~s) terminated: ~p.", [ClientId, Username, Reason]),
+    Log = #{
+      type => <<"on_session_terminated">>,
+      date => erlang:localtime(),
+      username => Username,
+      reason => Reason
+    }.
+    % write_to_es(Log).
 
 %% transform message and return
 on_message_publish(Message = #mqtt_message{topic = <<"$SYS/", _/binary>>}, _Env) ->
     {ok, Message};
 
 on_message_publish(Message, _Env) ->
-    io:format("publish ~s~n", [emqttd_message:format(Message)]),
-    % #mqtt_message{
-    %   id = MsgId,
-    %   pktid = PktId,
-    %   from = {ClientIdFrom, UsernameFrom},
-    %   qos = Qos,
-    %   retain = Retain,
-    %   dup = Dup,
-    %   topic = Topic
-    % } = Message,
+    % io:format("publish ~s~n", [emqttd_message:format(Message)]),
+    #mqtt_message{
+      id = MsgId,
+      pktid = PktId,
+      from = {ClientIdFrom, UsernameFrom},
+      qos = Qos,
+      retain = Retain,
+      dup = Dup,
+      topic = Topic
+    } = Message,
     % Log = {
     %   <<"type">>,<<"on_message_publish">>,
     %   <<"date">>,erlang:timestamp(),
@@ -193,19 +180,31 @@ on_message_publish(Message, _Env) ->
     %   }
     % },
     % write_to_mongo(Log),
+    Log = #{
+      type => <<"on_message_publish">>,
+      date => erlang:localtime(),
+      message => #{
+        from => UsernameFrom,
+        qos => Qos,
+        retain => Retain,
+        topic => Topic,
+        dup => Dup
+      }
+    },
+    % write_to_es(Log),
     {ok, Message}.
 
 on_message_delivered(ClientId, Username, Message, _Env) ->
-    io:format("delivered to client(~s/~s): ~s~n", [Username, ClientId, emqttd_message:format(Message)]),
-    % #mqtt_message{
-    %   id = MsgId,
-    %   pktid = PktId,
-    %   from = {ClientIdFrom, UsernameFrom},
-    %   qos = Qos,
-    %   retain = Retain,
-    %   dup = Dup,
-    %   topic = Topic
-    % } = Message,
+    % io:format("delivered to client(~s/~s): ~s~n", [Username, ClientId, emqttd_message:format(Message)]),
+    #mqtt_message{
+      id = MsgId,
+      pktid = PktId,
+      from = {ClientIdFrom, UsernameFrom},
+      qos = Qos,
+      retain = Retain,
+      dup = Dup,
+      topic = Topic
+    } = Message,
     % Log = {
     %   <<"type">>, <<"on_message_delivered">>,
     %   <<"date">>, erlang:timestamp(),
@@ -225,19 +224,32 @@ on_message_delivered(ClientId, Username, Message, _Env) ->
     %   }
     % },
     % write_to_mongo(Log),
+    Log = #{
+      type => <<"on_message_delivered">>,
+      date => erlang:localtime(),
+      username => Username,
+      message => #{
+        from => UsernameFrom,
+        qos => Qos,
+        retain => Retain,
+        topic => Topic,
+        dup => Dup
+      }
+    },
+    % write_to_es(Log),
     {ok, Message}.
 
 on_message_acked(ClientId, Username, Message, _Env) ->
-    io:format("client(~s/~s) acked: ~s~n", [Username, ClientId, emqttd_message:format(Message)]),
-    % #mqtt_message{
-    %   id = MsgId,
-    %   pktid = PktId,
-    %   from = {ClientIdFrom, UsernameFrom},
-    %   qos = Qos,
-    %   retain = Retain,
-    %   dup = Dup,
-    %   topic = Topic
-    % } = Message,
+    % io:format("client(~s/~s) acked: ~s~n", [Username, ClientId, emqttd_message:format(Message)]),
+    #mqtt_message{
+      id = MsgId,
+      pktid = PktId,
+      from = {ClientIdFrom, UsernameFrom},
+      qos = Qos,
+      retain = Retain,
+      dup = Dup,
+      topic = Topic
+    } = Message,
     % Log = {
     %   <<"type">>, <<"on_message_acked">>,
     %   <<"date">>, erlang:timestamp(),
@@ -257,6 +269,19 @@ on_message_acked(ClientId, Username, Message, _Env) ->
     %   }
     % },
     % write_to_mongo(Log),
+    Log = #{
+      type => <<"on_message_acked">>,
+      date => erlang:localtime(),
+      username => Username,
+      message => #{
+        from => UsernameFrom,
+        qos => Qos,
+        retain => Retain,
+        topic => Topic,
+        dup => Dup
+      }
+    },
+    % write_to_es(Log),
     {ok, Message}.
 
 %% Called when the plugin application stop
