@@ -43,7 +43,8 @@
 write_to_es(Log) ->
   esio:start(),
   {ok, Sock} = esio:socket("http://172.20.10.4:9200/"),
-  esio:put(Sock, "urn:es:mqt:analytics:1", Log),
+  Id = lists:flatten(io_lib:format("~p", [erlang:phash2({node(), now()})])),
+  esio:put(Sock, "urn:es:mqt:analytics:" ++ Id, Log),
   esio:close(Sock).
 % --- Custom functions
 
@@ -67,7 +68,7 @@ on_client_connected(ConnAck, Client = #mqtt_client{client_id = ClientId}, _Env) 
       type => <<"on_client_connected">>,
       date => erlang:localtime()
     },
-    % write_to_es(Log),
+    write_to_es(Log),
     {ok, Client}.
 
 on_client_disconnected(Reason, _Client = #mqtt_client{client_id = ClientId}, _Env) ->
@@ -76,7 +77,7 @@ on_client_disconnected(Reason, _Client = #mqtt_client{client_id = ClientId}, _En
       type => <<"on_client_disconnected">>,
       date => erlang:localtime()
     },
-    % write_to_es(Log),
+    write_to_es(Log),
     ok.
 
 on_client_subscribe(ClientId, Username, TopicTable, _Env) ->
@@ -98,7 +99,7 @@ on_client_unsubscribe(ClientId, Username, TopicTable, _Env) ->
       username => Username,
       topic_table => TopicTable
     },
-    % write_to_es(Log),
+    write_to_es(Log),
     {ok, TopicTable}.
 
 on_session_created(ClientId, Username, _Env) ->
@@ -107,7 +108,7 @@ on_session_created(ClientId, Username, _Env) ->
       date => erlang:localtime(),
       username => Username
     },
-    % write_to_es(Log),
+    write_to_es(Log),
     io:format("session(~s/~s) created.", [ClientId, Username]).
 
 on_session_subscribed(ClientId, Username, {Topic, Opts}, _Env) ->
@@ -135,7 +136,7 @@ on_session_unsubscribed(ClientId, Username, {Topic, Opts}, _Env) ->
         opts => Opts
       }
     },
-    % write_to_es(Log),
+    write_to_es(Log),
     ok.
 
 on_session_terminated(ClientId, Username, Reason, _Env) ->
@@ -145,8 +146,8 @@ on_session_terminated(ClientId, Username, Reason, _Env) ->
       date => erlang:localtime(),
       username => Username,
       reason => Reason
-    }.
-    % write_to_es(Log).
+    },
+    write_to_es(Log).
 
 %% transform message and return
 on_message_publish(Message = #mqtt_message{topic = <<"$SYS/", _/binary>>}, _Env) ->
@@ -191,7 +192,7 @@ on_message_publish(Message, _Env) ->
         dup => Dup
       }
     },
-    % write_to_es(Log),
+    write_to_es(Log),
     {ok, Message}.
 
 on_message_delivered(ClientId, Username, Message, _Env) ->
@@ -236,7 +237,7 @@ on_message_delivered(ClientId, Username, Message, _Env) ->
         dup => Dup
       }
     },
-    % write_to_es(Log),
+    write_to_es(Log),
     {ok, Message}.
 
 on_message_acked(ClientId, Username, Message, _Env) ->
@@ -281,7 +282,7 @@ on_message_acked(ClientId, Username, Message, _Env) ->
         dup => Dup
       }
     },
-    % write_to_es(Log),
+    write_to_es(Log),
     {ok, Message}.
 
 %% Called when the plugin application stop
