@@ -1,5 +1,3 @@
+# emq_plugin_apinf
 
-emqttd_plugin_apinf
-======================
-
-This is an analytics plugin for emqttd project.
+> This is an analytics plugin for emqttd project.
