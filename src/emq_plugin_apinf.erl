@@ -42,7 +42,8 @@
 
 write_to_es(Log) ->
   esio:start(),
-  {ok, Sock} = esio:socket("http://172.20.10.4:9200/"),
+  % TODO: Move ES host URL to config file
+  {ok, Sock} = esio:socket("http://192.168.43.171:9200/"),
   Id = lists:flatten(io_lib:format("~p", [erlang:phash2({node(), now()})])),
   esio:put(Sock, "urn:es:mqt:analytics:" ++ Id, Log),
   esio:close(Sock).
