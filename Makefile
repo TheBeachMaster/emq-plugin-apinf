@@ -1,6 +1,6 @@
 PROJECT = emq_plugin_apinf
 PROJECT_DESCRIPTION = EMQ Apinf Plugin
-PROJECT_VERSION = 2.1
+PROJECT_VERSION = 2.1.1
 
 BUILD_DEPS = emqttd esio uuid
 dep_emqttd = git https://github.com/emqtt/emqttd master
