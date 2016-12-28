@@ -44,7 +44,7 @@ write_to_es(Log) ->
   esio:start(),
   % TODO: Move ES host URL to config file
   {ok, Sock} = esio:socket("http://192.168.43.171:9200/"),
-  [Id] = flake_harness:generate(1,62),
+  Id = uuid:to_string(uuid:uuid1()),
   esio:put(Sock, "urn:es:mqt:analytics:" ++ Id, Log),
   esio:close(Sock).
 % --- Custom functions
