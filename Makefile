@@ -2,9 +2,10 @@ PROJECT = emq_plugin_apinf
 PROJECT_DESCRIPTION = EMQ Apinf Plugin
 PROJECT_VERSION = 2.1
 
-BUILD_DEPS = emqttd esio
+BUILD_DEPS = emqttd esio flake
 dep_emqttd = git https://github.com/emqtt/emqttd master
-dep_esio	 = git https://github.com/zalando/esio master
+dep_esio	 = git https://github.com/frenchbread/esio master
+dep_flake  = git https://github.com/boundary/flake master
 
 TEST_DEPS = cuttlefish
 dep_cuttlefish = git https://github.com/basho/cuttlefish master
