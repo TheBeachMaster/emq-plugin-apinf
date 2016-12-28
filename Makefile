@@ -5,7 +5,7 @@ PROJECT_VERSION = 2.1.1
 BUILD_DEPS = emqttd esio uuid
 dep_emqttd = git https://github.com/emqtt/emqttd master
 dep_esio	 = git https://github.com/frenchbread/esio master
-dep_uuid   = git https://github.com/avtobiff/erlang-uuid.git master
+dep_uuid   = git https://github.com/avtobiff/erlang-uuid master
 
 TEST_DEPS = cuttlefish
 dep_cuttlefish = git https://github.com/basho/cuttlefish master
